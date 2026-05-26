@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Southern Ocean Literature Radar</title>
+    <link rel="stylesheet" href="styles.css?v=20260526">
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Filters">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true"></div>
+          <div>
+            <h1>Literature Radar</h1>
+            <p>Sea ice, Southern Ocean, carbon uptake</p>
+          </div>
+        </div>
+
+        <label class="field">
+          <span>Week</span>
+          <select id="weekSelect"></select>
+        </label>
+
+        <label class="field">
+          <span>Search</span>
+          <input id="searchInput" type="search" placeholder="Title, author, DOI, tag">
+        </label>
+
+        <label class="field">
+          <span>Paper Type</span>
+          <select id="typeSelect">
+            <option value="all">All types</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Status</span>
+          <select id="statusSelect">
+            <option value="all">All status</option>
+            <option value="to_read">To read</option>
+            <option value="reading">Reading</option>
+            <option value="done">Done</option>
+            <option value="ignore">Ignore</option>
+          </select>
+        </label>
+
+        <div class="field">
+          <span>Tags</span>
+          <div id="tagFilters" class="tag-grid"></div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="top-band" aria-labelledby="briefTitle">
+          <div>
+            <p id="briefDate" class="eyebrow"></p>
+            <h2 id="briefTitle"></h2>
+            <p id="briefSummary" class="brief-text"></p>
+          </div>
+          <div class="stat-strip" aria-label="Weekly metrics">
+            <div>
+              <strong id="paperCount">0</strong>
+              <span>Papers</span>
+            </div>
+            <div>
+              <strong id="readFirstCount">0</strong>
+              <span>Read first</span>
+            </div>
+            <div>
+              <strong id="preprintCount">0</strong>
+              <span>Preprints</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="workspace" aria-label="Papers">
+          <div class="paper-column">
+            <div class="toolbar">
+              <div class="segmented" role="group" aria-label="Sort">
+                <button class="sort-button is-active" data-sort="relevance">Relevance</button>
+                <button class="sort-button" data-sort="date">Newest</button>
+                <button class="sort-button" data-sort="priority">Priority</button>
+              </div>
+              <button id="exportButton" class="icon-button" title="Export filtered records" aria-label="Export filtered records">
+                <span aria-hidden="true">JSON</span>
+              </button>
+            </div>
+            <div id="paperList" class="paper-list"></div>
+          </div>
+
+          <aside class="detail-panel" aria-label="Paper details">
+            <div id="detailEmpty" class="empty-detail">Select a paper</div>
+            <article id="paperDetail" class="paper-detail" hidden>
+              <div class="detail-header">
+                <span id="detailPriority" class="priority-pill"></span>
+                <select id="detailStatus" class="status-select" aria-label="Reading status">
+                  <option value="to_read">To read</option>
+                  <option value="reading">Reading</option>
+                  <option value="done">Done</option>
+                  <option value="ignore">Ignore</option>
+                </select>
+              </div>
+              <h3 id="detailTitle"></h3>
+              <p id="detailCitation" class="citation"></p>
+              <div id="detailTags" class="tag-row"></div>
+
+              <dl class="metadata-list">
+                <div>
+                  <dt>Published</dt>
+                  <dd id="detailDate"></dd>
+                </div>
+                <div>
+                  <dt>Type</dt>
+                  <dd id="detailType"></dd>
+                </div>
+                <div>
+                  <dt>Relevance</dt>
+                  <dd id="detailRelevance"></dd>
+                </div>
+              </dl>
+
+              <section>
+                <h4>Summary</h4>
+                <p id="detailSummary"></p>
+              </section>
+              <section>
+                <h4>Why It Matters</h4>
+                <p id="detailWhy"></p>
+              </section>
+              <section>
+                <h4>Caveats</h4>
+                <p id="detailCaveats"></p>
+              </section>
+
+              <label class="notes-box">
+                <span>Notes</span>
+                <textarea id="detailNotes" rows="7"></textarea>
+              </label>
+
+              <div class="action-row">
+                <a id="doiLink" class="link-button" href="#" target="_blank" rel="noreferrer">DOI</a>
+                <a id="sourceLink" class="link-button" href="#" target="_blank" rel="noreferrer">Source</a>
+                <button id="copyCitationButton" class="link-button" type="button">Copy Citation</button>
+              </div>
+            </article>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="data/manifest.js?v=20260526"></script>
+    <script src="app.js?v=20260526"></script>
+  </body>
+</html>
