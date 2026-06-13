@@ -68,6 +68,15 @@ Recommended `paper_type` values: `peer-reviewed`, `preprint`, `review`, `dataset
 
 Reading status and notes are stored in browser `localStorage`, so the source data stays clean.
 
+## Manual Paper Drafts
+
+Use the `+ Add Paper` button in the sidebar to create local paper records from a DOI or URL.
+
+- Drafts are saved only in browser `localStorage`.
+- The interface does not call GitHub and does not use any token.
+- Use `Copy JS Record`, `Download JSON`, or `Download JS` to export a record for insertion into `data/weekly/YYYY-MM.js`.
+- DOI inputs such as `10.xxxx/...` and `https://doi.org/10.xxxx/...` are normalized automatically.
+
 ## Deployment
 
 This repo is ready for GitHub Pages as a static site served from the `main` branch root.

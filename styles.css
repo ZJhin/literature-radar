@@ -169,6 +169,19 @@ textarea:focus {
   color: var(--teal);
 }
 
+.sidebar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--teal);
+  border-radius: 8px;
+  background: var(--teal);
+  color: white;
+  font-weight: 900;
+}
+
 .content {
   padding: 24px;
   min-width: 0;
@@ -491,6 +504,10 @@ h2 {
   font-weight: 800;
 }
 
+.link-button.danger {
+  color: var(--coral);
+}
+
 .empty-list {
   border: 1px dashed var(--line);
   border-radius: 8px;
@@ -498,6 +515,86 @@ h2 {
   color: var(--muted);
   text-align: center;
   font-weight: 700;
+}
+
+.manual-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  background: rgba(24, 32, 38, 0.34);
+}
+
+.manual-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 21;
+  width: min(760px, 100vw);
+  height: 100vh;
+  overflow: auto;
+  border-left: 1px solid var(--line);
+  background: var(--paper);
+  box-shadow: -28px 0 70px rgba(24, 32, 38, 0.16);
+}
+
+.manual-form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+}
+
+.manual-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.manual-header h2 {
+  font-size: 32px;
+}
+
+.manual-status {
+  min-height: 24px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.manual-status.is-error {
+  color: var(--coral);
+}
+
+.manual-status.is-ok {
+  color: var(--green);
+}
+
+.manual-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.manual-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.manual-grid.three {
+  grid-template-columns: 120px minmax(0, 1fr) 150px;
+}
+
+.manual-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+#manualOutput {
+  min-height: 220px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 12px;
 }
 
 @media (max-width: 1080px) {
@@ -526,6 +623,10 @@ h2 {
     position: static;
     height: auto;
   }
+
+  .manual-panel {
+    width: 100vw;
+  }
 }
 
 @media (max-width: 720px) {
@@ -551,7 +652,9 @@ h2 {
   }
 
   .stat-strip,
-  .metadata-list {
+  .metadata-list,
+  .manual-grid.two,
+  .manual-grid.three {
     grid-template-columns: 1fr;
   }
 }

@@ -1,5 +1,6 @@
 (async function () {
   const storagePrefix = "so-lit-radar:";
+  const manualDraftsKey = "so-lit-radar:manual-drafts";
 
   await loadWeeklyData();
   const weeks = window.LITERATURE_WEEKS || [];
@@ -44,7 +45,38 @@
     doiLink: document.getElementById("doiLink"),
     sourceLink: document.getElementById("sourceLink"),
     copyCitationButton: document.getElementById("copyCitationButton"),
-    exportButton: document.getElementById("exportButton")
+    exportButton: document.getElementById("exportButton"),
+    addPaperButton: document.getElementById("addPaperButton"),
+    manualBackdrop: document.getElementById("manualBackdrop"),
+    manualPanel: document.getElementById("manualPanel"),
+    manualForm: document.getElementById("manualForm"),
+    closeManualButton: document.getElementById("closeManualButton"),
+    manualStatus: document.getElementById("manualStatus"),
+    manualDraftSelect: document.getElementById("manualDraftSelect"),
+    manualMonth: document.getElementById("manualMonth"),
+    manualPublishedDate: document.getElementById("manualPublishedDate"),
+    manualDoi: document.getElementById("manualDoi"),
+    manualUrl: document.getElementById("manualUrl"),
+    normalizeLinkButton: document.getElementById("normalizeLinkButton"),
+    manualTitle: document.getElementById("manualTitle"),
+    manualAuthors: document.getElementById("manualAuthors"),
+    manualYear: document.getElementById("manualYear"),
+    manualSource: document.getElementById("manualSource"),
+    manualPaperType: document.getElementById("manualPaperType"),
+    manualPriority: document.getElementById("manualPriority"),
+    manualRelevance: document.getElementById("manualRelevance"),
+    manualLinkQuality: document.getElementById("manualLinkQuality"),
+    manualSummary: document.getElementById("manualSummary"),
+    manualWhy: document.getElementById("manualWhy"),
+    manualCaveats: document.getElementById("manualCaveats"),
+    manualTags: document.getElementById("manualTags"),
+    manualOutput: document.getElementById("manualOutput"),
+    saveDraftButton: document.getElementById("saveDraftButton"),
+    copyRecordButton: document.getElementById("copyRecordButton"),
+    downloadJsonButton: document.getElementById("downloadJsonButton"),
+    downloadJsButton: document.getElementById("downloadJsButton"),
+    deleteDraftButton: document.getElementById("deleteDraftButton"),
+    clearManualButton: document.getElementById("clearManualButton")
   };
 
   function loadWeeklyData() {
@@ -274,7 +306,330 @@
     URL.revokeObjectURL(url);
   }
 
+  function loadManualDrafts() {
+    try {
+      return JSON.parse(localStorage.getItem(manualDraftsKey)) || [];
+    } catch (_error) {
+      return [];
+    }
+  }
+
+  function saveManualDrafts(drafts) {
+    localStorage.setItem(manualDraftsKey, JSON.stringify(drafts));
+  }
+
+  function renderManualDrafts(selectedId = "") {
+    const drafts = loadManualDrafts().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt));
+    els.manualDraftSelect.innerHTML = `<option value="">New draft</option>${drafts.map((draft) => {
+      const label = [draft.month, draft.record?.title || "Untitled"].filter(Boolean).join(" - ");
+      return `<option value="${escapeHtml(draft.draftId)}">${escapeHtml(label)}</option>`;
+    }).join("")}`;
+    els.manualDraftSelect.value = selectedId;
+  }
+
+  function defaultManualMonth() {
+    const weekId = currentWeek()?.id || "";
+    if (/^\d{4}-\d{2}$/.test(weekId)) return weekId;
+    if (/^\d{4}-\d{2}/.test(weekId)) return weekId.slice(0, 7);
+    return new Date().toISOString().slice(0, 7);
+  }
+
+  function setManualStatus(message, type = "") {
+    els.manualStatus.textContent = message;
+    els.manualStatus.className = `manual-status${type ? ` is-${type}` : ""}`;
+  }
+
+  function openManualPanel() {
+    els.manualBackdrop.hidden = false;
+    els.manualPanel.hidden = false;
+    renderManualDrafts(els.manualDraftSelect.value);
+    if (!els.manualMonth.value) resetManualForm();
+    updateManualOutput();
+    els.manualDoi.focus();
+  }
+
+  function closeManualPanel() {
+    els.manualBackdrop.hidden = true;
+    els.manualPanel.hidden = true;
+  }
+
+  function resetManualForm() {
+    els.manualDraftSelect.value = "";
+    els.manualMonth.value = defaultManualMonth();
+    els.manualPublishedDate.value = "";
+    els.manualDoi.value = "";
+    els.manualUrl.value = "";
+    els.manualTitle.value = "";
+    els.manualAuthors.value = "";
+    els.manualYear.value = els.manualMonth.value.slice(0, 4);
+    els.manualSource.value = "";
+    els.manualPaperType.value = "peer-reviewed";
+    els.manualPriority.value = "track";
+    els.manualRelevance.value = "0.7";
+    els.manualLinkQuality.value = "doi";
+    els.manualSummary.value = "";
+    els.manualWhy.value = "";
+    els.manualCaveats.value = "";
+    els.manualTags.value = "Southern Ocean, sea ice, carbon uptake";
+    setManualStatus("");
+    updateManualOutput();
+  }
+
+  function loadManualDraft(draftId) {
+    const draft = loadManualDrafts().find((item) => item.draftId === draftId);
+    if (!draft) {
+      resetManualForm();
+      return;
+    }
+
+    const record = draft.record || {};
+    els.manualMonth.value = draft.month || record.published_date?.slice(0, 7) || defaultManualMonth();
+    els.manualPublishedDate.value = record.published_date || "";
+    els.manualDoi.value = record.doi || "";
+    els.manualUrl.value = record.url || "";
+    els.manualTitle.value = record.title || "";
+    els.manualAuthors.value = (record.authors || []).join("; ");
+    els.manualYear.value = record.year || els.manualMonth.value.slice(0, 4);
+    els.manualSource.value = record.source || "";
+    els.manualPaperType.value = record.paper_type || "peer-reviewed";
+    els.manualPriority.value = record.priority || "track";
+    els.manualRelevance.value = String(record.relevance_score ?? 0.7);
+    els.manualLinkQuality.value = record.link_quality || inferLinkQuality(record);
+    els.manualSummary.value = record.summary || "";
+    els.manualWhy.value = record.why_it_matters || "";
+    els.manualCaveats.value = record.caveats || "";
+    els.manualTags.value = (record.tags || []).join(", ");
+    setManualStatus("Draft loaded.", "ok");
+    updateManualOutput();
+  }
+
+  function normalizeManualLinks() {
+    const doiFromDoi = extractDoi(els.manualDoi.value);
+    const doiFromUrl = extractDoi(els.manualUrl.value);
+    const doi = doiFromDoi || doiFromUrl;
+
+    if (doi) {
+      els.manualDoi.value = doi;
+      if (!els.manualUrl.value || els.manualUrl.value.includes("doi.org")) {
+        els.manualUrl.value = `https://doi.org/${doi}`;
+      }
+      els.manualLinkQuality.value = els.manualPaperType.value === "preprint" ? "preprint" : "doi";
+      setManualStatus("DOI normalized.", "ok");
+    } else if (els.manualUrl.value) {
+      els.manualUrl.value = els.manualUrl.value.trim();
+      els.manualLinkQuality.value = inferLinkQuality({ url: els.manualUrl.value, paper_type: els.manualPaperType.value });
+      setManualStatus("URL normalized.", "ok");
+    } else {
+      setManualStatus("Add a DOI or URL first.", "error");
+    }
+
+    updateManualOutput();
+  }
+
+  function extractDoi(value) {
+    const text = String(value || "").trim();
+    const match = text.match(/10\.\d{4,9}\/[^\s"<>]+/i);
+    if (!match) return "";
+    return match[0].replace(/[),.;\]]+$/, "");
+  }
+
+  function splitList(value) {
+    return String(value || "")
+      .split(/\n|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function splitTags(value) {
+    return String(value || "")
+      .split(/,|\n|;/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function slugify(value) {
+    return String(value || "")
+      .toLowerCase()
+      .replace(/&/g, " and ")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
+  }
+
+  function firstAuthorSlug(authors) {
+    const first = authors[0] || "unknown";
+    const parts = first.trim().split(/\s+/);
+    return slugify(parts[parts.length - 1] || first) || "unknown";
+  }
+
+  function generatePaperId(record) {
+    const titleWords = slugify(record.title).split("-").slice(0, 6).join("-");
+    return [firstAuthorSlug(record.authors), record.year || "n-d", titleWords || "paper"].filter(Boolean).join("-");
+  }
+
+  function inferLinkQuality(record) {
+    const url = String(record.url || "").toLowerCase();
+    if (record.doi) return record.paper_type === "preprint" ? "preprint" : "doi";
+    if (record.paper_type === "preprint" || url.includes("egusphere") || url.includes("preprint")) return "preprint";
+    if (record.paper_type === "news" || url.includes("sciencedaily") || url.includes("phys.org")) return "news_only";
+    return "journal_page";
+  }
+
+  function manualRecordFromForm() {
+    const doi = extractDoi(els.manualDoi.value);
+    const authors = splitList(els.manualAuthors.value);
+    const month = els.manualMonth.value || defaultManualMonth();
+    const publishedDate = els.manualPublishedDate.value || `${month}-01`;
+    const year = Number(els.manualYear.value || publishedDate.slice(0, 4) || month.slice(0, 4));
+    const relevance = Math.max(0, Math.min(1, Number(els.manualRelevance.value || 0)));
+    const record = {
+      id: "",
+      title: els.manualTitle.value.trim(),
+      authors,
+      year,
+      source: els.manualSource.value.trim(),
+      doi,
+      url: els.manualUrl.value.trim() || (doi ? `https://doi.org/${doi}` : ""),
+      link_quality: els.manualLinkQuality.value,
+      published_date: publishedDate,
+      paper_type: els.manualPaperType.value,
+      priority: els.manualPriority.value,
+      summary: els.manualSummary.value.trim(),
+      why_it_matters: els.manualWhy.value.trim(),
+      caveats: els.manualCaveats.value.trim(),
+      tags: splitTags(els.manualTags.value),
+      relevance_score: relevance,
+      reading_status: "to_read",
+      notes: ""
+    };
+
+    record.link_quality = record.link_quality || inferLinkQuality(record);
+    record.id = generatePaperId(record);
+    return { month, record };
+  }
+
+  function validateManualRecord(record, month) {
+    const errors = [];
+    if (!month) errors.push("Month is required.");
+    if (!record.title) errors.push("Title is required.");
+    if (!record.doi && !record.url) errors.push("Add at least one DOI or URL.");
+    if (Number.isNaN(record.relevance_score)) errors.push("Relevance must be a number from 0 to 1.");
+    if (record.relevance_score < 0 || record.relevance_score > 1) errors.push("Relevance must be between 0 and 1.");
+    return errors;
+  }
+
+  function manualRecordSnippet(record) {
+    return JSON.stringify(record, null, 2);
+  }
+
+  function updateManualOutput() {
+    const { record } = manualRecordFromForm();
+    els.manualOutput.value = manualRecordSnippet(record);
+  }
+
+  function saveManualDraft() {
+    normalizeManualLinks();
+    const { month, record } = manualRecordFromForm();
+    const errors = validateManualRecord(record, month);
+    if (errors.length) {
+      setManualStatus(errors.join(" "), "error");
+      return;
+    }
+
+    const drafts = loadManualDrafts();
+    const selectedId = els.manualDraftSelect.value;
+    const draftId = selectedId || `draft-${Date.now()}`;
+    const nextDraft = { draftId, month, record, updatedAt: new Date().toISOString() };
+    const nextDrafts = drafts.filter((draft) => draft.draftId !== draftId).concat(nextDraft);
+    saveManualDrafts(nextDrafts);
+    renderManualDrafts(draftId);
+    setManualStatus("Saved locally.", "ok");
+    updateManualOutput();
+  }
+
+  async function copyManualRecord() {
+    normalizeManualLinks();
+    const { month, record } = manualRecordFromForm();
+    const errors = validateManualRecord(record, month);
+    if (errors.length) {
+      setManualStatus(errors.join(" "), "error");
+      return;
+    }
+
+    await writeClipboard(manualRecordSnippet(record));
+    setManualStatus("JS record copied.", "ok");
+  }
+
+  function downloadManualJson() {
+    normalizeManualLinks();
+    const { month, record } = manualRecordFromForm();
+    const errors = validateManualRecord(record, month);
+    if (errors.length) {
+      setManualStatus(errors.join(" "), "error");
+      return;
+    }
+
+    downloadText(`${record.id}.json`, JSON.stringify({ month, record }, null, 2), "application/json");
+    setManualStatus("JSON downloaded.", "ok");
+  }
+
+  function downloadManualJs() {
+    normalizeManualLinks();
+    const { month, record } = manualRecordFromForm();
+    const errors = validateManualRecord(record, month);
+    if (errors.length) {
+      setManualStatus(errors.join(" "), "error");
+      return;
+    }
+
+    const content = `// Insert this object into data/weekly/${month}.js papers array.\n${manualRecordSnippet(record)}\n`;
+    downloadText(`${record.id}.js`, content, "text/javascript");
+    setManualStatus("JS snippet downloaded.", "ok");
+  }
+
+  function deleteManualDraft() {
+    const selectedId = els.manualDraftSelect.value;
+    if (!selectedId) {
+      setManualStatus("Select a draft to delete.", "error");
+      return;
+    }
+
+    saveManualDrafts(loadManualDrafts().filter((draft) => draft.draftId !== selectedId));
+    renderManualDrafts("");
+    resetManualForm();
+    setManualStatus("Draft deleted.", "ok");
+  }
+
+  function downloadText(filename, content, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function writeClipboard(text) {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_error) {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
+  }
+
   function bindEvents() {
+    els.manualForm.addEventListener("submit", (event) => {
+      event.preventDefault();
+    });
+
     els.weekSelect.addEventListener("change", (event) => {
       state.weekId = event.target.value;
       state.type = "all";
@@ -340,18 +695,7 @@
     els.copyCitationButton.addEventListener("click", async () => {
       const paper = allPapers().find((item) => item.id === state.selectedId);
       if (!paper) return;
-      try {
-      await navigator.clipboard.writeText(formatCitation(paper));
-      } catch (_error) {
-        const textarea = document.createElement("textarea");
-        textarea.value = formatCitation(paper);
-        textarea.style.position = "fixed";
-        textarea.style.opacity = "0";
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand("copy");
-        textarea.remove();
-      }
+      await writeClipboard(formatCitation(paper));
       els.copyCitationButton.textContent = "Copied";
       window.setTimeout(() => {
         els.copyCitationButton.textContent = "Copy Citation";
@@ -359,6 +703,39 @@
     });
 
     els.exportButton.addEventListener("click", exportFiltered);
+    els.addPaperButton.addEventListener("click", openManualPanel);
+    els.closeManualButton.addEventListener("click", closeManualPanel);
+    els.manualBackdrop.addEventListener("click", closeManualPanel);
+    els.normalizeLinkButton.addEventListener("click", normalizeManualLinks);
+    els.saveDraftButton.addEventListener("click", saveManualDraft);
+    els.copyRecordButton.addEventListener("click", copyManualRecord);
+    els.downloadJsonButton.addEventListener("click", downloadManualJson);
+    els.downloadJsButton.addEventListener("click", downloadManualJs);
+    els.deleteDraftButton.addEventListener("click", deleteManualDraft);
+    els.clearManualButton.addEventListener("click", resetManualForm);
+    els.manualDraftSelect.addEventListener("change", (event) => loadManualDraft(event.target.value));
+
+    [
+      els.manualMonth,
+      els.manualPublishedDate,
+      els.manualDoi,
+      els.manualUrl,
+      els.manualTitle,
+      els.manualAuthors,
+      els.manualYear,
+      els.manualSource,
+      els.manualPaperType,
+      els.manualPriority,
+      els.manualRelevance,
+      els.manualLinkQuality,
+      els.manualSummary,
+      els.manualWhy,
+      els.manualCaveats,
+      els.manualTags
+    ].forEach((element) => {
+      element.addEventListener("input", updateManualOutput);
+      element.addEventListener("change", updateManualOutput);
+    });
   }
 
   function render() {
@@ -377,5 +754,6 @@
   }
 
   bindEvents();
+  renderManualDrafts();
   render();
 })();
