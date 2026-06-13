@@ -1,12 +1,51 @@
 (async function () {
   const storagePrefix = "so-lit-radar:";
   const manualDraftsKey = "so-lit-radar:manual-drafts";
+  const seaIceCollectionId = "antarctic-sea-ice";
+  const scopeLabels = {
+    all: "All Radar",
+    "antarctic-sea-ice": "Antarctic Sea Ice"
+  };
+  const seaIceFocusAreas = [
+    {
+      id: "observations",
+      label: "Observations",
+      keywords: ["observational", "satellite", "remote sensing", "bgc-argo", "profiles", "isotope", "measurements"]
+    },
+    {
+      id: "processes",
+      label: "Processes",
+      keywords: ["stratification", "mixing", "winter water", "cdw", "salinity", "meltwater", "poc", "pn", "sea-ice algae", "biogeochemistry"]
+    },
+    {
+      id: "climate-drivers",
+      label: "Climate drivers",
+      keywords: ["wind", "westerlies", "drivers", "climate", "precipitation", "warming", "heat uptake", "destratification"]
+    },
+    {
+      id: "models",
+      label: "Models",
+      keywords: ["model", "modeling", "modelling", "cmip", "sosim", "simulated", "simulation"]
+    },
+    {
+      id: "impacts",
+      label: "Impacts",
+      keywords: ["ecosystems", "phytoplankton", "krill", "salps", "carbon export", "carbon uptake", "carbon storage", "carbon cycle", "biological pump"]
+    },
+    {
+      id: "data-reports",
+      label: "Data / reports",
+      keywords: ["dataset", "report", "review", "synthesis", "methods", "opinion", "research priorities"]
+    }
+  ];
 
   await loadWeeklyData();
   const weeks = window.LITERATURE_WEEKS || [];
 
   const state = {
+    scope: initialScope(),
     weekId: weeks[0]?.id || "",
+    seaIceFocus: "all",
     search: "",
     type: "all",
     status: "all",
@@ -19,6 +58,9 @@
 
   const els = {
     weekSelect: document.getElementById("weekSelect"),
+    scopeButtons: Array.from(document.querySelectorAll(".scope-button")),
+    seaIceFocusField: document.getElementById("seaIceFocusField"),
+    seaIceFocusSelect: document.getElementById("seaIceFocusSelect"),
     searchInput: document.getElementById("searchInput"),
     typeSelect: document.getElementById("typeSelect"),
     statusSelect: document.getElementById("statusSelect"),
@@ -29,6 +71,11 @@
     paperCount: document.getElementById("paperCount"),
     readFirstCount: document.getElementById("readFirstCount"),
     preprintCount: document.getElementById("preprintCount"),
+    collectionPanel: document.getElementById("collectionPanel"),
+    collectionTitle: document.getElementById("collectionTitle"),
+    collectionSummary: document.getElementById("collectionSummary"),
+    collectionReadFirst: document.getElementById("collectionReadFirst"),
+    collectionFocusGrid: document.getElementById("collectionFocusGrid"),
     paperList: document.getElementById("paperList"),
     detailEmpty: document.getElementById("detailEmpty"),
     paperDetail: document.getElementById("paperDetail"),
@@ -74,6 +121,7 @@
     manualWhy: document.getElementById("manualWhy"),
     manualCaveats: document.getElementById("manualCaveats"),
     manualTags: document.getElementById("manualTags"),
+    manualCollections: document.getElementById("manualCollections"),
     manualOutput: document.getElementById("manualOutput"),
     saveDraftButton: document.getElementById("saveDraftButton"),
     copyRecordButton: document.getElementById("copyRecordButton"),
@@ -100,6 +148,10 @@
         });
       })
     ), Promise.resolve());
+  }
+
+  function initialScope() {
+    return window.location.hash === "#antarctic-sea-ice" ? "antarctic-sea-ice" : "all";
   }
 
   function currentWeek() {
@@ -175,25 +227,62 @@
     return (currentWeek()?.papers || []).map(enrichPaper);
   }
 
+  function paperText(paper) {
+    return normalize([
+      paper.title,
+      paper.authors?.join(" "),
+      paper.source,
+      paper.doi,
+      paper.tags?.join(" "),
+      paper.summary,
+      paper.why_it_matters,
+      paper.caveats
+    ].join(" "));
+  }
+
+  function paperCollections(paper) {
+    const explicit = Array.isArray(paper.collections) ? paper.collections : [];
+    const derived = isAntarcticSeaIcePaper(paper) ? [seaIceCollectionId] : [];
+    return Array.from(new Set(explicit.concat(derived)));
+  }
+
+  function isAntarcticSeaIcePaper(paper) {
+    const text = paperText(paper);
+    return text.includes("sea ice") || text.includes("sea-ice") || text.includes("antarctic sea ice");
+  }
+
+  function seaIceCategories(paper) {
+    const text = paperText(paper);
+    return seaIceFocusAreas
+      .filter((area) => area.keywords.some((keyword) => text.includes(keyword)))
+      .map((area) => area.id);
+  }
+
+  function scopedPapers() {
+    const papers = allPapers();
+    if (state.scope !== seaIceCollectionId) return papers;
+
+    return seaIcePapers().filter((paper) => {
+      const inFocus = state.seaIceFocus === "all" || seaIceCategories(paper).includes(state.seaIceFocus);
+      return inFocus;
+    });
+  }
+
+  function seaIcePapers() {
+    return allPapers().filter((paper) => paperCollections(paper).includes(seaIceCollectionId));
+  }
+
   function filteredPapers() {
     const query = normalize(state.search);
     const selectedTags = Array.from(state.tags);
 
-    const result = allPapers().filter((paper) => {
-      const haystack = normalize([
-        paper.title,
-        paper.authors?.join(" "),
-        paper.source,
-        paper.doi,
-        paper.tags?.join(" "),
-        paper.summary,
-        paper.why_it_matters
-      ].join(" "));
+    const result = scopedPapers().filter((paper) => {
+      const haystack = paperText(paper);
 
       const matchesQuery = !query || haystack.includes(query);
       const matchesType = state.type === "all" || paper.paper_type === state.type;
       const matchesStatus = state.status === "all" || paper.reading_status === state.status;
-      const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => paper.tags.includes(tag));
+      const matchesTags = selectedTags.length === 0 || selectedTags.every((tag) => paper.tags?.includes(tag));
       return matchesQuery && matchesType && matchesStatus && matchesTags;
     });
 
@@ -210,12 +299,19 @@
   }
 
   function renderControls() {
+    els.scopeButtons.forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.scope === state.scope);
+      button.setAttribute("aria-current", button.dataset.scope === state.scope ? "page" : "false");
+    });
+    els.seaIceFocusField.hidden = state.scope !== seaIceCollectionId;
+    els.seaIceFocusSelect.value = state.seaIceFocus;
+
     els.weekSelect.innerHTML = weeks.map((week) => (
       `<option value="${week.id}">${week.date}</option>`
     )).join("");
     els.weekSelect.value = state.weekId;
 
-    const papers = allPapers();
+    const papers = scopedPapers();
     const types = Array.from(new Set(papers.map((paper) => paper.paper_type))).sort();
     els.typeSelect.innerHTML = `<option value="all">All types</option>${types.map((type) => (
       `<option value="${type}">${type}</option>`
@@ -242,14 +338,63 @@
 
   function renderBrief() {
     const week = currentWeek();
-    const papers = allPapers();
+    const papers = scopedPapers();
+    const isSeaIce = state.scope === seaIceCollectionId;
 
     els.briefDate.textContent = week?.date || "";
-    els.briefTitle.textContent = week?.title || "No weekly brief";
-    els.briefSummary.textContent = week?.synthesis || "";
+    els.briefTitle.textContent = isSeaIce
+      ? `Antarctic Sea Ice | ${week?.date || ""}`
+      : week?.title || "No weekly brief";
+    els.briefSummary.textContent = isSeaIce
+      ? seaIceBriefText(papers, week)
+      : week?.synthesis || "";
     els.paperCount.textContent = papers.length;
     els.readFirstCount.textContent = papers.filter((paper) => paper.priority === "read_first").length;
     els.preprintCount.textContent = papers.filter((paper) => paper.paper_type === "preprint").length;
+  }
+
+  function seaIceBriefText(papers, week) {
+    if (!papers.length) {
+      return "No Antarctic sea-ice records are tagged for this month yet. Switch back to All Radar or add a paper with sea ice tags to populate this column.";
+    }
+
+    const focusLabels = seaIceFocusAreas
+      .filter((area) => papers.some((paper) => seaIceCategories(paper).includes(area.id)))
+      .map((area) => area.label.toLowerCase());
+    const focusText = focusLabels.length ? ` Focus areas this month: ${focusLabels.join(", ")}.` : "";
+    return `A dedicated view of Antarctic sea-ice papers and close process context for ${week?.date || "this month"}.${focusText}`;
+  }
+
+  function renderCollectionPanel() {
+    if (state.scope !== seaIceCollectionId) {
+      els.collectionPanel.hidden = true;
+      return;
+    }
+
+    const papers = seaIcePapers();
+    const visiblePapers = scopedPapers();
+    els.collectionPanel.hidden = false;
+    els.collectionTitle.textContent = "Antarctic Sea Ice";
+    els.collectionSummary.textContent = "Focused reading lane for Antarctic sea-ice variability, mechanisms, modelling, ecosystem effects, and links to Southern Ocean carbon-cycle interpretation.";
+
+    const readFirst = visiblePapers
+      .filter((paper) => paper.priority === "read_first")
+      .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0))
+      .slice(0, 4);
+    els.collectionReadFirst.innerHTML = readFirst.length
+      ? readFirst.map((paper) => `<li><button type="button" data-jump-paper="${paper.id}">${escapeHtml(paper.title)}</button></li>`).join("")
+      : `<li>No read-first sea-ice records this month.</li>`;
+
+    els.collectionFocusGrid.innerHTML = seaIceFocusAreas.map((area) => {
+      const count = papers.filter((paper) => seaIceCategories(paper).includes(area.id)).length;
+      const active = state.seaIceFocus === area.id ? " is-active" : "";
+      return `
+        <button class="focus-card${active}" type="button" data-focus="${area.id}">
+          <span>${escapeHtml(area.label)}</span>
+          <strong>${count}</strong>
+        </button>
+      `;
+    }).join("");
   }
 
   function renderList() {
@@ -267,9 +412,10 @@
 
     els.paperList.innerHTML = papers.map((paper) => {
       const selected = paper.id === state.selectedId ? " is-selected" : "";
-      const tags = paper.tags.slice(0, 5).map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
+      const tags = (paper.tags || []).slice(0, 5).map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
       const linkBadge = paper.doi || paper.url ? `<span class="quality-badge">${linkQualityLabel(paper.link_quality || inferLinkQuality(paper))}</span>` : "";
       const relevanceBadge = `<span class="quality-badge relevance">${relevanceKind(paper)}</span>`;
+      const collectionBadge = state.scope === seaIceCollectionId ? `<span class="quality-badge ice">Sea ice</span>` : "";
       return `
         <button class="paper-card ${state.viewMode}${selected}" data-paper-id="${paper.id}" type="button">
           <header>
@@ -284,6 +430,7 @@
             <span class="status-pill">${statusLabel(paper.reading_status)}</span>
             ${linkBadge}
             ${relevanceBadge}
+            ${collectionBadge}
           </div>
           <div class="tag-row">${tags}</div>
         </button>
@@ -309,9 +456,10 @@
     els.detailCitation.textContent = formatCitation(paper);
     els.detailBadges.innerHTML = [
       `<span class="quality-badge">${linkQualityLabel(paper.link_quality || inferLinkQuality(paper))}</span>`,
-      `<span class="quality-badge relevance">${relevanceKind(paper)}</span>`
+      `<span class="quality-badge relevance">${relevanceKind(paper)}</span>`,
+      paperCollections(paper).includes(seaIceCollectionId) ? `<span class="quality-badge ice">Sea ice</span>` : ""
     ].join("");
-    els.detailTags.innerHTML = paper.tags.map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
+    els.detailTags.innerHTML = (paper.tags || []).map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
     els.detailDate.textContent = paper.published_date;
     els.detailType.textContent = paper.paper_type;
     els.detailRelevance.textContent = `${Math.round((paper.relevance_score || 0) * 100)}%`;
@@ -416,6 +564,7 @@
     els.manualWhy.value = "";
     els.manualCaveats.value = "";
     els.manualTags.value = "Southern Ocean, sea ice, carbon uptake";
+    els.manualCollections.value = state.scope === seaIceCollectionId ? seaIceCollectionId : "";
     setManualStatus("");
     updateManualOutput();
   }
@@ -444,6 +593,7 @@
     els.manualWhy.value = record.why_it_matters || "";
     els.manualCaveats.value = record.caveats || "";
     els.manualTags.value = (record.tags || []).join(", ");
+    els.manualCollections.value = (record.collections || []).join(", ");
     setManualStatus("Draft loaded.", "ok");
     updateManualOutput();
   }
@@ -543,12 +693,16 @@
       why_it_matters: els.manualWhy.value.trim(),
       caveats: els.manualCaveats.value.trim(),
       tags: splitTags(els.manualTags.value),
+      collections: splitTags(els.manualCollections.value),
       relevance_score: relevance,
       reading_status: "to_read",
       notes: ""
     };
 
     record.link_quality = record.link_quality || inferLinkQuality(record);
+    if (!record.collections.length && isAntarcticSeaIcePaper(record)) {
+      record.collections = [seaIceCollectionId];
+    }
     record.id = generatePaperId(record);
     return { month, record };
   }
@@ -683,6 +837,20 @@
       event.preventDefault();
     });
 
+    els.scopeButtons.forEach((button) => {
+      button.addEventListener("click", () => {
+        setScope(button.dataset.scope);
+      });
+    });
+
+    els.seaIceFocusSelect.addEventListener("change", (event) => {
+      state.seaIceFocus = event.target.value;
+      state.type = "all";
+      state.tags.clear();
+      state.selectedId = "";
+      render();
+    });
+
     els.weekSelect.addEventListener("change", (event) => {
       state.weekId = event.target.value;
       state.type = "all";
@@ -750,6 +918,25 @@
       renderList();
     });
 
+    els.collectionPanel.addEventListener("click", (event) => {
+      const focusButton = event.target.closest("[data-focus]");
+      if (focusButton) {
+        state.seaIceFocus = state.seaIceFocus === focusButton.dataset.focus ? "all" : focusButton.dataset.focus;
+        state.type = "all";
+        state.tags.clear();
+        state.selectedId = "";
+        render();
+        return;
+      }
+
+      const paperButton = event.target.closest("[data-jump-paper]");
+      if (paperButton) {
+        state.selectedId = paperButton.dataset.jumpPaper;
+        renderList();
+        document.querySelector(`[data-paper-id="${CSS.escape(state.selectedId)}"]`)?.focus();
+      }
+    });
+
     els.detailStatus.addEventListener("change", (event) => {
       if (!state.selectedId) return;
       savePaperState(state.selectedId, { reading_status: event.target.value });
@@ -784,6 +971,13 @@
     els.clearManualButton.addEventListener("click", resetManualForm);
     els.manualDraftSelect.addEventListener("change", (event) => loadManualDraft(event.target.value));
 
+    window.addEventListener("hashchange", () => {
+      setScope(initialScope(), { updateHash: false });
+    });
+    window.addEventListener("popstate", () => {
+      setScope(initialScope(), { updateHash: false });
+    });
+
     [
       els.manualMonth,
       els.manualPublishedDate,
@@ -800,16 +994,39 @@
       els.manualSummary,
       els.manualWhy,
       els.manualCaveats,
-      els.manualTags
+      els.manualTags,
+      els.manualCollections
     ].forEach((element) => {
       element.addEventListener("input", updateManualOutput);
       element.addEventListener("change", updateManualOutput);
     });
   }
 
+  function setScope(scope, options = {}) {
+    const nextScope = scopeLabels[scope] ? scope : "all";
+    if (state.scope === nextScope) return;
+
+    state.scope = nextScope;
+    state.seaIceFocus = "all";
+    state.type = "all";
+    state.tags.clear();
+    state.selectedId = "";
+
+    if (options.updateHash !== false) {
+      if (nextScope === seaIceCollectionId) {
+        window.history.pushState(null, "", "#antarctic-sea-ice");
+      } else {
+        window.history.pushState(null, "", window.location.pathname + window.location.search);
+      }
+    }
+
+    render();
+  }
+
   function render() {
     renderControls();
     renderBrief();
+    renderCollectionPanel();
     renderList();
   }
 

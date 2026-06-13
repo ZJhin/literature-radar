@@ -4,9 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Southern Ocean Literature Radar</title>
-    <link rel="stylesheet" href="styles.css?v=20260614">
+    <link rel="stylesheet" href="styles.css?v=20260614-seaice">
   </head>
   <body>
+    <a class="skip-link" href="#mainContent">Skip to main content</a>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Filters">
         <div class="brand-block">
@@ -17,9 +18,27 @@
           </div>
         </div>
 
+        <nav class="scope-switcher" aria-label="Main views">
+          <button class="scope-button is-active" type="button" data-scope="all">All Radar</button>
+          <button class="scope-button" type="button" data-scope="antarctic-sea-ice">Antarctic Sea Ice</button>
+        </nav>
+
         <label class="field">
           <span>Week</span>
           <select id="weekSelect"></select>
+        </label>
+
+        <label id="seaIceFocusField" class="field" hidden>
+          <span>Sea Ice Focus</span>
+          <select id="seaIceFocusSelect">
+            <option value="all">All focus areas</option>
+            <option value="observations">Observations</option>
+            <option value="processes">Processes</option>
+            <option value="climate-drivers">Climate drivers</option>
+            <option value="models">Models</option>
+            <option value="impacts">Impacts</option>
+            <option value="data-reports">Data / reports</option>
+          </select>
         </label>
 
         <label class="field">
@@ -56,7 +75,7 @@
         <button id="addPaperButton" class="sidebar-action" type="button">+ Add Paper</button>
       </aside>
 
-      <main class="content">
+      <main id="mainContent" class="content">
         <section class="top-band" aria-labelledby="briefTitle">
           <div>
             <p id="briefDate" class="eyebrow"></p>
@@ -77,6 +96,19 @@
               <span>Preprints</span>
             </div>
           </div>
+        </section>
+
+        <section id="collectionPanel" class="collection-panel" aria-labelledby="collectionTitle" hidden>
+          <div class="collection-intro">
+            <p class="eyebrow">专题专栏</p>
+            <h3 id="collectionTitle">Antarctic Sea Ice</h3>
+            <p id="collectionSummary"></p>
+          </div>
+          <div class="read-first-box">
+            <h4>Read First</h4>
+            <ol id="collectionReadFirst"></ol>
+          </div>
+          <div id="collectionFocusGrid" class="focus-grid" aria-label="Sea ice focus areas"></div>
         </section>
 
         <section class="workspace" aria-label="Papers">
@@ -293,6 +325,11 @@
             <span>Tags</span>
             <input id="manualTags" type="text" placeholder="Southern Ocean, sea ice, carbon uptake">
           </label>
+
+          <label class="field">
+            <span>Collections</span>
+            <input id="manualCollections" type="text" placeholder="antarctic-sea-ice">
+          </label>
         </details>
 
         <details class="manual-section">
@@ -315,6 +352,6 @@
     </aside>
 
     <script src="data/manifest.js?v=20260526"></script>
-    <script src="app.js?v=20260614"></script>
+    <script src="app.js?v=20260614-seaice"></script>
   </body>
 </html>

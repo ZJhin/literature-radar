@@ -46,6 +46,33 @@ select {
   cursor: pointer;
 }
 
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(0, 109, 119, 0.28);
+  outline-offset: 2px;
+}
+
+.skip-link {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 40;
+  transform: translateY(-160%);
+  border-radius: 8px;
+  background: var(--teal);
+  color: white;
+  padding: 10px 14px;
+  text-decoration: none;
+  font-weight: 900;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 292px minmax(0, 1fr);
@@ -98,6 +125,44 @@ h1 {
   color: var(--muted);
   font-size: 12px;
   line-height: 1.35;
+}
+
+.scope-switcher {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.scope-button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--muted);
+  padding: 0 12px;
+  font-weight: 900;
+  text-align: left;
+}
+
+.scope-button::after {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.scope-button.is-active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+
+.scope-button.is-active::after {
+  background: var(--teal);
 }
 
 .field {
@@ -467,6 +532,104 @@ h2 {
   color: var(--green);
 }
 
+.quality-badge.ice {
+  background: #edf7fb;
+  color: #0f5e7a;
+}
+
+.collection-panel {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.05fr) minmax(230px, 0.8fr);
+  gap: 16px;
+  padding: 16px 0 0;
+}
+
+.collection-intro,
+.read-first-box,
+.focus-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.collection-intro,
+.read-first-box {
+  padding: 18px;
+}
+
+.collection-intro h3 {
+  font-size: 24px;
+  line-height: 1.15;
+}
+
+.collection-intro p,
+.read-first-box li {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.collection-intro p {
+  margin-top: 8px;
+}
+
+.read-first-box h4 {
+  margin-bottom: 10px;
+  color: var(--teal);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.read-first-box ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.read-first-box button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 0;
+  text-align: left;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.focus-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.focus-card {
+  display: grid;
+  gap: 8px;
+  min-height: 76px;
+  padding: 12px;
+  color: var(--muted);
+  text-align: left;
+}
+
+.focus-card span {
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.25;
+}
+
+.focus-card strong {
+  color: var(--ink);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.focus-card.is-active {
+  border-color: var(--teal);
+  background: var(--teal-soft);
+}
+
 .detail-panel {
   position: sticky;
   top: 18px;
@@ -734,8 +897,13 @@ h2 {
   }
 
   .brand-block,
-  .field {
+  .field,
+  .scope-switcher {
     margin-bottom: 0;
+  }
+
+  .scope-switcher {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .workspace {
@@ -759,8 +927,13 @@ h2 {
   }
 
   .sidebar,
-  .top-band {
+  .top-band,
+  .collection-panel {
     grid-template-columns: 1fr;
+  }
+
+  .focus-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .toolbar,
