@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Southern Ocean Literature Radar</title>
-    <link rel="stylesheet" href="styles.css?v=20260613">
+    <link rel="stylesheet" href="styles.css?v=20260614">
   </head>
   <body>
     <div class="app-shell">
@@ -45,8 +45,11 @@
           </select>
         </label>
 
-        <div class="field">
-          <span>Tags</span>
+        <div class="field tag-filter-field">
+          <div class="filter-heading">
+            <span>Tags</span>
+            <button id="tagToggleButton" class="subtle-button" type="button">More</button>
+          </div>
           <div id="tagFilters" class="tag-grid"></div>
         </div>
 
@@ -79,10 +82,16 @@
         <section class="workspace" aria-label="Papers">
           <div class="paper-column">
             <div class="toolbar">
-              <div class="segmented" role="group" aria-label="Sort">
-                <button class="sort-button is-active" data-sort="relevance">Relevance</button>
-                <button class="sort-button" data-sort="date">Newest</button>
-                <button class="sort-button" data-sort="priority">Priority</button>
+              <div class="toolbar-groups">
+                <div class="segmented" role="group" aria-label="Sort">
+                  <button class="sort-button is-active" data-sort="relevance">Relevance</button>
+                  <button class="sort-button" data-sort="date">Newest</button>
+                  <button class="sort-button" data-sort="priority">Priority</button>
+                </div>
+                <div class="segmented" role="group" aria-label="View density">
+                  <button class="view-button is-active" data-view="compact">Compact</button>
+                  <button class="view-button" data-view="comfortable">Full</button>
+                </div>
               </div>
               <button id="exportButton" class="icon-button" title="Export filtered records" aria-label="Export filtered records">
                 <span aria-hidden="true">JSON</span>
@@ -105,6 +114,7 @@
               </div>
               <h3 id="detailTitle"></h3>
               <p id="detailCitation" class="citation"></p>
+              <div id="detailBadges" class="tag-row"></div>
               <div id="detailTags" class="tag-row"></div>
 
               <dl class="metadata-list">
@@ -164,120 +174,136 @@
 
         <div id="manualStatus" class="manual-status" role="status"></div>
 
-        <label class="field">
-          <span>Drafts</span>
-          <select id="manualDraftSelect">
-            <option value="">New draft</option>
-          </select>
-        </label>
-
-        <div class="manual-grid two">
+        <details class="manual-section" open>
+          <summary>Link & Month</summary>
           <label class="field">
-            <span>Month</span>
-            <input id="manualMonth" type="month" required>
-          </label>
-          <label class="field">
-            <span>Published Date</span>
-            <input id="manualPublishedDate" type="date">
-          </label>
-        </div>
-
-        <div class="manual-grid two">
-          <label class="field">
-            <span>DOI</span>
-            <input id="manualDoi" type="text" placeholder="10.xxxx/xxxxx">
-          </label>
-          <label class="field">
-            <span>URL</span>
-            <input id="manualUrl" type="url" placeholder="https://...">
-          </label>
-        </div>
-
-        <button id="normalizeLinkButton" class="link-button" type="button">Normalize DOI / URL</button>
-
-        <label class="field">
-          <span>Title</span>
-          <input id="manualTitle" type="text" required>
-        </label>
-
-        <label class="field">
-          <span>Authors</span>
-          <textarea id="manualAuthors" rows="3" placeholder="Separate authors with semicolons or new lines"></textarea>
-        </label>
-
-        <div class="manual-grid three">
-          <label class="field">
-            <span>Year</span>
-            <input id="manualYear" type="number" min="1900" max="2100">
-          </label>
-          <label class="field">
-            <span>Source</span>
-            <input id="manualSource" type="text" placeholder="Journal or preprint server">
-          </label>
-          <label class="field">
-            <span>Paper Type</span>
-            <select id="manualPaperType">
-              <option value="peer-reviewed">peer-reviewed</option>
-              <option value="preprint">preprint</option>
-              <option value="review">review</option>
-              <option value="dataset">dataset</option>
-              <option value="methods">methods</option>
-              <option value="news">news</option>
+            <span>Drafts</span>
+            <select id="manualDraftSelect">
+              <option value="">New draft</option>
             </select>
           </label>
-        </div>
 
-        <div class="manual-grid three">
+          <div class="manual-grid two">
+            <label class="field">
+              <span>Month <b class="required-mark">*</b></span>
+              <input id="manualMonth" type="month" required>
+              <small id="manualMonthError" class="field-error"></small>
+            </label>
+            <label class="field">
+              <span>Published Date</span>
+              <input id="manualPublishedDate" type="date">
+            </label>
+          </div>
+
+          <div class="manual-grid two">
+            <label class="field">
+              <span>DOI or URL <b class="required-mark">*</b></span>
+              <input id="manualDoi" type="text" placeholder="10.xxxx/xxxxx">
+              <small id="manualLinkError" class="field-error"></small>
+            </label>
+            <label class="field">
+              <span>Source URL</span>
+              <input id="manualUrl" type="url" placeholder="https://...">
+            </label>
+          </div>
+
+          <button id="normalizeLinkButton" class="link-button" type="button">Normalize DOI / URL</button>
+        </details>
+
+        <details class="manual-section" open>
+          <summary>Citation</summary>
           <label class="field">
-            <span>Priority</span>
-            <select id="manualPriority">
-              <option value="track">track</option>
-              <option value="read_first">read_first</option>
-              <option value="background">background</option>
-              <option value="low">low</option>
-            </select>
+            <span>Title <b class="required-mark">*</b></span>
+            <input id="manualTitle" type="text" required>
+            <small id="manualTitleError" class="field-error"></small>
           </label>
+
           <label class="field">
-            <span>Relevance</span>
-            <input id="manualRelevance" type="number" min="0" max="1" step="0.01" value="0.7">
+            <span>Authors</span>
+            <textarea id="manualAuthors" rows="3" placeholder="Separate authors with semicolons or new lines"></textarea>
           </label>
+
+          <div class="manual-grid three">
+            <label class="field">
+              <span>Year</span>
+              <input id="manualYear" type="number" min="1900" max="2100">
+            </label>
+            <label class="field">
+              <span>Source</span>
+              <input id="manualSource" type="text" placeholder="Journal or preprint server">
+            </label>
+            <label class="field">
+              <span>Paper Type</span>
+              <select id="manualPaperType">
+                <option value="peer-reviewed">peer-reviewed</option>
+                <option value="preprint">preprint</option>
+                <option value="review">review</option>
+                <option value="dataset">dataset</option>
+                <option value="methods">methods</option>
+                <option value="news">news</option>
+              </select>
+            </label>
+          </div>
+        </details>
+
+        <details class="manual-section">
+          <summary>Interpretation</summary>
+          <div class="manual-grid three">
+            <label class="field">
+              <span>Priority</span>
+              <select id="manualPriority">
+                <option value="track">track</option>
+                <option value="read_first">read_first</option>
+                <option value="background">background</option>
+                <option value="low">low</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Relevance</span>
+              <input id="manualRelevance" type="number" min="0" max="1" step="0.01" value="0.7">
+              <small id="manualRelevanceError" class="field-error"></small>
+            </label>
+            <label class="field">
+              <span>Link Quality</span>
+              <select id="manualLinkQuality">
+                <option value="doi">doi</option>
+                <option value="journal_page">journal_page</option>
+                <option value="preprint">preprint</option>
+                <option value="news_only">news_only</option>
+              </select>
+            </label>
+          </div>
+
           <label class="field">
-            <span>Link Quality</span>
-            <select id="manualLinkQuality">
-              <option value="doi">doi</option>
-              <option value="journal_page">journal_page</option>
-              <option value="preprint">preprint</option>
-              <option value="news_only">news_only</option>
-            </select>
+            <span>Summary</span>
+            <textarea id="manualSummary" rows="4"></textarea>
           </label>
-        </div>
 
-        <label class="field">
-          <span>Summary</span>
-          <textarea id="manualSummary" rows="4"></textarea>
-        </label>
+          <label class="field">
+            <span>Why It Matters</span>
+            <textarea id="manualWhy" rows="4"></textarea>
+          </label>
 
-        <label class="field">
-          <span>Why It Matters</span>
-          <textarea id="manualWhy" rows="4"></textarea>
-        </label>
+          <label class="field">
+            <span>Caveats</span>
+            <textarea id="manualCaveats" rows="3"></textarea>
+          </label>
 
-        <label class="field">
-          <span>Caveats</span>
-          <textarea id="manualCaveats" rows="3"></textarea>
-        </label>
+          <label class="field">
+            <span>Tags</span>
+            <input id="manualTags" type="text" placeholder="Southern Ocean, sea ice, carbon uptake">
+          </label>
+        </details>
 
-        <label class="field">
-          <span>Tags</span>
-          <input id="manualTags" type="text" placeholder="Southern Ocean, sea ice, carbon uptake">
-        </label>
+        <details class="manual-section">
+          <summary>Generated Record</summary>
+          <label class="field">
+            <span>JS Record</span>
+            <textarea id="manualOutput" rows="10" readonly></textarea>
+          </label>
+        </details>
 
-        <label class="field">
-          <span>Generated Record</span>
-          <textarea id="manualOutput" rows="10" readonly></textarea>
-        </label>
-
-        <div class="manual-actions">
+        <div class="manual-actions" aria-label="Manual paper actions">
           <button id="saveDraftButton" class="link-button" type="button">Save Draft</button>
           <button id="copyRecordButton" class="link-button" type="button">Copy JS Record</button>
           <button id="downloadJsonButton" class="link-button" type="button">Download JSON</button>
@@ -289,6 +315,6 @@
     </aside>
 
     <script src="data/manifest.js?v=20260526"></script>
-    <script src="app.js?v=20260613"></script>
+    <script src="app.js?v=20260614"></script>
   </body>
 </html>

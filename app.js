@@ -12,6 +12,8 @@
     status: "all",
     tags: new Set(),
     sort: "relevance",
+    viewMode: localStorage.getItem(`${storagePrefix}view-mode`) || "compact",
+    tagsExpanded: false,
     selectedId: ""
   };
 
@@ -34,6 +36,7 @@
     detailStatus: document.getElementById("detailStatus"),
     detailTitle: document.getElementById("detailTitle"),
     detailCitation: document.getElementById("detailCitation"),
+    detailBadges: document.getElementById("detailBadges"),
     detailTags: document.getElementById("detailTags"),
     detailDate: document.getElementById("detailDate"),
     detailType: document.getElementById("detailType"),
@@ -46,6 +49,7 @@
     sourceLink: document.getElementById("sourceLink"),
     copyCitationButton: document.getElementById("copyCitationButton"),
     exportButton: document.getElementById("exportButton"),
+    tagToggleButton: document.getElementById("tagToggleButton"),
     addPaperButton: document.getElementById("addPaperButton"),
     manualBackdrop: document.getElementById("manualBackdrop"),
     manualPanel: document.getElementById("manualPanel"),
@@ -146,6 +150,23 @@
     }[value] || "To read";
   }
 
+  function linkQualityLabel(value) {
+    return {
+      doi: "DOI",
+      journal_page: "Journal",
+      preprint: "Preprint",
+      news_only: "News only"
+    }[value] || "Source";
+  }
+
+  function relevanceKind(paper) {
+    if (paper.relevance_kind) return paper.relevance_kind;
+    if ((paper.relevance_score || 0) >= 0.88) return "Direct";
+    if ((paper.relevance_score || 0) >= 0.72) return "Mechanistic";
+    if ((paper.relevance_score || 0) >= 0.6) return "Context";
+    return "Background";
+  }
+
   function normalize(value) {
     return String(value || "").toLowerCase();
   }
@@ -201,10 +222,21 @@
     )).join("")}`;
     els.typeSelect.value = state.type;
 
-    const tags = Array.from(new Set(papers.flatMap((paper) => paper.tags))).sort();
-    els.tagFilters.innerHTML = tags.map((tag) => {
+    const tagCounts = papers.reduce((counts, paper) => {
+      (paper.tags || []).forEach((tag) => {
+        counts.set(tag, (counts.get(tag) || 0) + 1);
+      });
+      return counts;
+    }, new Map());
+    const tags = Array.from(tagCounts.keys()).sort((a, b) => tagCounts.get(b) - tagCounts.get(a) || a.localeCompare(b));
+    const visibleTags = state.tagsExpanded
+      ? tags
+      : Array.from(new Set(tags.slice(0, 12).concat(Array.from(state.tags))));
+    els.tagToggleButton.hidden = tags.length <= 12;
+    els.tagToggleButton.textContent = state.tagsExpanded ? "Less" : `More (${tags.length - 12})`;
+    els.tagFilters.innerHTML = visibleTags.map((tag) => {
       const active = state.tags.has(tag) ? " is-active" : "";
-      return `<button class="tag-chip${active}" data-tag="${tag}" type="button">${tag}</button>`;
+      return `<button class="tag-chip${active}" data-tag="${tag}" type="button">${escapeHtml(tag)} <span>${tagCounts.get(tag)}</span></button>`;
     }).join("");
   }
 
@@ -236,8 +268,10 @@
     els.paperList.innerHTML = papers.map((paper) => {
       const selected = paper.id === state.selectedId ? " is-selected" : "";
       const tags = paper.tags.slice(0, 5).map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
+      const linkBadge = paper.doi || paper.url ? `<span class="quality-badge">${linkQualityLabel(paper.link_quality || inferLinkQuality(paper))}</span>` : "";
+      const relevanceBadge = `<span class="quality-badge relevance">${relevanceKind(paper)}</span>`;
       return `
-        <button class="paper-card${selected}" data-paper-id="${paper.id}" type="button">
+        <button class="paper-card ${state.viewMode}${selected}" data-paper-id="${paper.id}" type="button">
           <header>
             <h3>${escapeHtml(paper.title)}</h3>
             <span class="priority-pill ${paper.priority}">${priorityLabel(paper.priority)}</span>
@@ -248,6 +282,8 @@
             <span>${escapeHtml(paper.published_date)}</span>
             <span>${Math.round((paper.relevance_score || 0) * 100)}%</span>
             <span class="status-pill">${statusLabel(paper.reading_status)}</span>
+            ${linkBadge}
+            ${relevanceBadge}
           </div>
           <div class="tag-row">${tags}</div>
         </button>
@@ -271,6 +307,10 @@
     els.detailStatus.value = paper.reading_status;
     els.detailTitle.textContent = paper.title;
     els.detailCitation.textContent = formatCitation(paper);
+    els.detailBadges.innerHTML = [
+      `<span class="quality-badge">${linkQualityLabel(paper.link_quality || inferLinkQuality(paper))}</span>`,
+      `<span class="quality-badge relevance">${relevanceKind(paper)}</span>`
+    ].join("");
     els.detailTags.innerHTML = paper.tags.map((tag) => `<span class="tag-chip">${tag}</span>`).join("");
     els.detailDate.textContent = paper.published_date;
     els.detailType.textContent = paper.paper_type;
@@ -337,6 +377,11 @@
   function setManualStatus(message, type = "") {
     els.manualStatus.textContent = message;
     els.manualStatus.className = `manual-status${type ? ` is-${type}` : ""}`;
+  }
+
+  function setFieldError(element, errorElement, message) {
+    element.toggleAttribute("aria-invalid", Boolean(message));
+    errorElement.textContent = message || "";
   }
 
   function openManualPanel() {
@@ -510,11 +555,19 @@
 
   function validateManualRecord(record, month) {
     const errors = [];
-    if (!month) errors.push("Month is required.");
-    if (!record.title) errors.push("Title is required.");
-    if (!record.doi && !record.url) errors.push("Add at least one DOI or URL.");
-    if (Number.isNaN(record.relevance_score)) errors.push("Relevance must be a number from 0 to 1.");
-    if (record.relevance_score < 0 || record.relevance_score > 1) errors.push("Relevance must be between 0 and 1.");
+    const monthError = !month ? "Month is required." : "";
+    const titleError = !record.title ? "Title is required." : "";
+    const linkError = !record.doi && !record.url ? "Add at least one DOI or URL." : "";
+    const relevanceError = Number.isNaN(record.relevance_score) || record.relevance_score < 0 || record.relevance_score > 1
+      ? "Use a number from 0 to 1."
+      : "";
+
+    setFieldError(els.manualMonth, document.getElementById("manualMonthError"), monthError);
+    setFieldError(els.manualTitle, document.getElementById("manualTitleError"), titleError);
+    setFieldError(els.manualDoi, document.getElementById("manualLinkError"), linkError);
+    setFieldError(els.manualRelevance, document.getElementById("manualRelevanceError"), relevanceError);
+
+    [monthError, titleError, linkError, relevanceError].filter(Boolean).forEach((error) => errors.push(error));
     return errors;
   }
 
@@ -665,10 +718,26 @@
       renderList();
     });
 
+    els.tagToggleButton.addEventListener("click", () => {
+      state.tagsExpanded = !state.tagsExpanded;
+      renderControls();
+    });
+
     document.querySelectorAll(".sort-button").forEach((button) => {
       button.addEventListener("click", () => {
         state.sort = button.dataset.sort;
         document.querySelectorAll(".sort-button").forEach((item) => item.classList.remove("is-active"));
+        button.classList.add("is-active");
+        renderList();
+      });
+    });
+
+    document.querySelectorAll(".view-button").forEach((button) => {
+      button.classList.toggle("is-active", button.dataset.view === state.viewMode);
+      button.addEventListener("click", () => {
+        state.viewMode = button.dataset.view;
+        localStorage.setItem(`${storagePrefix}view-mode`, state.viewMode);
+        document.querySelectorAll(".view-button").forEach((item) => item.classList.remove("is-active"));
         button.classList.add("is-active");
         renderList();
       });
