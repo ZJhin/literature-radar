@@ -344,7 +344,7 @@
     els.briefDate.textContent = week?.date || "";
     els.briefTitle.textContent = isSeaIce
       ? `Antarctic Sea Ice | ${week?.date || ""}`
-      : week?.title || "No weekly brief";
+      : week?.title || "No monthly brief";
     els.briefSummary.textContent = isSeaIce
       ? seaIceBriefText(papers, week)
       : week?.synthesis || "";
