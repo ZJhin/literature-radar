@@ -4,7 +4,7 @@ window.LITERATURE_WEEKS.push(
     id: "2026-04",
     date: "2026-04",
     title: "April 2026: Southern Ocean Sea Ice and Carbon Uptake",
-    synthesis: "April 2026 was rich in Southern Ocean carbon-cycle context. The strongest carbon-uptake record is the Nature Geoscience atmospheric oxygen constraint paper, while the strongest cryosphere-biogeochemistry records concern giant iceberg nutrient cycling, Circumpolar Deep Water migration, Antarctic sea-ice retreat mechanisms, and the SOSIM coupled ocean-sea-ice-ice-shelf model. A recurring theme is that carbon uptake is increasingly being interpreted through coupled physics: sea-ice state, meltwater, nutrient supply, stratification, deep-water pathways, and ecosystem response.",
+    synthesis: "April 2026 was rich in Southern Ocean carbon-cycle context. The strongest carbon-uptake records are the Nature Geoscience atmospheric oxygen constraint paper and the ESS Open Archive observing-system preprint, while the strongest cryosphere-biogeochemistry records concern giant iceberg nutrient cycling, Circumpolar Deep Water migration, Antarctic sea-ice retreat mechanisms, and the SOSIM coupled ocean-sea-ice-ice-shelf model. A recurring theme is that carbon uptake is increasingly being interpreted through coupled physics and observing-system bias: sea-ice state, winter and under-ice sampling, meltwater, nutrient supply, stratification, deep-water pathways, and ecosystem response.",
     papers: [
       {
         id: "jin-2026-atmospheric-oxygen-carbon-uptake-april",
@@ -41,6 +41,27 @@ window.LITERATURE_WEEKS.push(
         caveats: "The study focuses on iceberg-driven biogeochemistry, not sea-ice carbon uptake specifically.",
         tags: ["Southern Ocean", "icebergs", "carbon cycling", "carbon export", "diatoms", "silicon isotopes", "meltwater", "biogeochemistry"],
         relevance_score: 0.9,
+        reading_status: "to_read",
+        notes: ""
+      },
+      {
+        id: "delaigue-2026-southern-ocean-co2-sink-observing-system",
+        title: "The Southern Ocean CO2 sink in an evolving observing system",
+        authors: ["L. Delaigue", "P. Landschützer", "C. Wimart-Rousseau", "L. A. Arbilla", "J.-B. Sallée", "S. M. Bushinsky", "H. Claustre", "R. Sauzède"],
+        year: 2026,
+        source: "ESS Open Archive preprint",
+        doi: "10.22541/essoar.15002449/v1",
+        url: "https://doi.org/10.22541/essoar.15002449/v1",
+        link_quality: "preprint",
+        published_date: "2026-04-27",
+        paper_type: "preprint",
+        priority: "read_first",
+        summary: "This preprint combines SOCAT ship observations with BGC-Argo pCO2 estimates and machine-learning reconstructions to reassess the Southern Ocean CO2 sink from 2003 to 2024. It argues that the apparent strengthening in ship-only products largely disappears once float sampling is included, with mean uptake near -1.32 +/- 0.10 Pg C yr-1 and lower uptake after sampling-bias correction.",
+        why_it_matters: "Winter and under-ice sampling gaps are a central sea-ice-zone problem. This paper directly affects confidence in inferred Southern Ocean carbon uptake trends and provides a strong observing-system counterpart to sea-ice and marginal-ice-zone process papers.",
+        caveats: "Preprint and not a sea-ice-only study, but the sampling-bias issue is highly relevant to high-latitude and seasonally ice-covered waters.",
+        tags: ["Southern Ocean", "carbon uptake", "air-sea CO2 flux", "BGC-Argo", "SOCAT", "machine learning", "observing system", "sampling bias", "sea ice", "preprint"],
+        collections: ["antarctic-sea-ice"],
+        relevance_score: 0.92,
         reading_status: "to_read",
         notes: ""
       },
